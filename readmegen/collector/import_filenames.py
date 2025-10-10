@@ -25,7 +25,6 @@ SKIP_DIRS = {
     "target",
     "coverage",
     "logs",
-    # keep excluding the generator folder
 }
 
 INCLUDE_EXTS = {
