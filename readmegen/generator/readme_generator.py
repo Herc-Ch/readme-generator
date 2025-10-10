@@ -51,7 +51,7 @@ Guidelines:
 - Never omit or truncate closing triple backticks.
 - All installation and usage commands must appear in **copyable** fenced blocks (not inline).
 - When showing folder trees or command-line examples, wrap them in ```bash``` or ```plaintext``` blocks.
-- For Mermaid diagrams, always use the syntax ```mermaid\n{diagram}\n```.
+- For Mermaid diagrams, always use the syntax ```mermaid\n{{diagram}}\n```.
 
 
 Mermaid Diagram Rules (Strict):
@@ -66,12 +66,7 @@ Mermaid Diagram Rules (Strict):
    - Subgraph: subgraph FE["Frontend: React + Vite"] ... end
 6. Never output [Label] without quotes if it contains spaces, punctuation, parentheses, slashes, or plus signs.
 7. If in doubt, always quote the label.
-8. Never forget to wrap the final Mermaid diagram inside fenced code blocks:
-{{code}}
-Example:
-```mermaid
-flowchart LR
-  A["Frontend"] --> B["Backend"]
+
 
 
 Format the output as a valid Markdown README.md file.

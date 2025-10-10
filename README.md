@@ -1,212 +1,219 @@
-# readmegen
+# readmegen — Local README Generator (Flask + React + LangChain)
 
-Generate high‑quality README.md files for any local project using a lightweight Flask backend, a React frontend, and LangChain + OpenAI under the hood.
-
-This app:
-- Scans a target project folder on your machine
-- Uses an LLM to assess which files matter for onboarding and documentation
-- Generates a professional README in Markdown and writes it to the target folder as README.generated.md
-
-✨ Great for quickly documenting repos you inherit or refactor.
+Generate clean, professional README.md files for any local project folder using a small Flask API, a React UI, and LangChain with OpenAI. Paste a directory path, the app collects and assesses files, then composes a polished README you can save and tweak. ✨
 
 ## Features
 
-- Local file collector with sensible filters (ignores build artifacts, common caches, etc.)
-- PII‑aware sanitization for .env-like files (replaces values with placeholders)
-- Heuristic size limits and truncation for lock/config files
-- LLM-based file assessment (score + include + rationale + summary)
-- README generation with optional Mermaid architecture diagram
-- Simple React UI to trigger generation and view logs
-- REST API for headless usage or scripting
+- Smart file collection with sensible defaults:
+  - Skips heavy/irrelevant dirs (node_modules, .git, build, dist, etc.).
+  - Truncates very large files and lockfiles; sanitizes .env values.
+  - Ignores an existing README when generating a new one.
+- File relevance assessment:
+  - LLM-based scoring (0–5) with a strict rubric to decide what belongs in the README.
+  - Structured output via Pydantic for consistent decisions.
+- README generation:
+  - Concise, professional Markdown with fenced code blocks and optional Mermaid diagrams.
+  - Enforces proper formatting and diagrams that always render.
+- Simple local stack:
+  - Backend: Flask API with LangChain + OpenAI.
+  - Frontend: React + Vite UI with a minimal form.
+- Deterministic and safe:
+  - Deterministic file traversal order, size caps, and sanitized secrets.
+
+## Tech Stack
+
+- Backend: Python, Flask, LangChain, OpenAI API, Pydantic, python-dotenv
+- Frontend: React, Vite, Tailwind (v4), shadcn/ui pieces, React Hook Form + Zod
+
+## Requirements
+
+- Python 3.10+ recommended
+- Node.js 18+ (or newer)
+- An OpenAI API key
+
+## Installation
+
+1) Clone and set up the backend:
+
+```bash
+# from the repository root
+python -m venv .venv
+# Windows: .venv\Scripts\activate
+# macOS/Linux:
+source .venv/bin/activate
+
+pip install -r requirements.txt
+```
+
+2) Create a .env file in the repo root:
+
+```bash
+# .env
+OPENAI_API_KEY=<YOUR_VALUE>
+# Optional LangSmith tracing (for debugging/observability with LangChain)
+LANGSMITH_API_KEY=<YOUR_VALUE>
+LANGSMITH_TRACING=<YOUR_VALUE>
+```
+
+3) Start the Flask API:
+
+```bash
+python app.py
+# → serves on http://localhost:5000
+```
+
+4) Set up the frontend:
+
+```bash
+cd frontend
+npm install
+npm run dev
+# → Vite dev server on http://localhost:5173
+```
+
+## Usage
+
+- Web UI (recommended)
+  1. Open http://localhost:5173
+  2. Paste an absolute path to a project folder on your machine.
+  3. Optionally set a Relevance Threshold (default 3).
+  4. Click “Generate README”. The generated Markdown appears in the UI and is also written to README.md in that folder.
+
+- API (direct)
+
+```bash
+curl -X POST http://localhost:5000/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "path": "/absolute/path/to/project",
+    "relevance": 3
+  }'
+```
+
+Windows JSON example (escape backslashes):
+
+```bash
+curl -X POST http://localhost:5000/api/generate ^
+  -H "Content-Type: application/json" ^
+  -d "{\"path\": \"C:\\\\Users\\\\you\\\\project\", \"relevance\": 3}"
+```
+
+Response (abridged):
+- ok: boolean
+- out_path: path to README.md
+- logs: processing log lines
+- readme: generated Markdown
+- selected_paths: files used as context
+- count_collected / count_selected: counts
+
+## How It Works
+
+- Collector (readmegen/collector):
+  - Walks the target repo, skips common build/IDE/vendor dirs.
+  - Includes relevant extensions and key files (py/js/ts/toml/json/yaml/md, package.json, requirements.txt, Dockerfile, etc.).
+  - Caps per-file size (512 KB) and total bytes (~5 MB).
+  - Truncates lock/config files and sanitizes .env values.
+
+- Assessor (readmegen/assessor):
+  - Uses LangChain + OpenAI to rate files 0–5 and decide include=True/False based on a strict rubric focused on onboarding value.
+
+- Generator (readmegen/generator):
+  - Composes a final README from selected files.
+  - Enforces fenced code blocks and strict Mermaid diagram rules.
+
+If no file meets the include=True and score ≥ threshold, the generator falls back to using all collected files.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-  subgraph FE["Frontend: React + Vite"]
-    UI["HomePage.jsx"]
-  end
-  subgraph BE["Backend: Flask"]
-    API["POST /api/generate"]
-    COL["Collector"]
-    ASSESS["Assessor (LangChain + OpenAI)"]
-    GEN["Generator"]
-  end
+  FE["Frontend (React + Vite)"]
+  API["Flask API (/api/generate)"]
+  COL["Collector"]
+  AS["Assessor (LangChain + OpenAI)"]
+  GEN["README Generator (LangChain)"]
+  FS["Local Filesystem"]
 
-  USER["User"] -- "enters path + relevance" --> UI
-  UI -- "HTTP POST /api/generate" --> API
-  API -- "reads files" --> COL
-  COL -- "docs" --> ASSESS
-  ASSESS -- "assessed files" --> GEN
-  GEN -- "README.generated.md" --> FS["File System"]
-  ASSESS -- "LLM calls" --> OAI["OpenAI API"]
+  FE -- "POST /api/generate" --> API
+  API -- "collect()" --> COL
+  COL -- "docs" --> API
+  API -- "assess_files()" --> AS
+  AS -- "scores + include" --> API
+  API -- "generate_readme_from()" --> GEN
+  GEN -- "README.md" --> FS
+  API -- "JSON response" --> FE
 ```
 
 ## Project Structure
 
-- app.py — Flask API server exposing POST /api/generate
-- readmegen/
-  - collector/
-    - collector.py — walks the project tree, filters, sanitizes, truncates
-    - import_filenames.py — include/skip rules (dirs, extensions, lock files)
-  - assessor/
-    - assessor.py — LangChain pipeline to rate files and propose summaries
-  - generator/
-    - readme_generator.py — builds the README from selected context
-- frontend/ — React + Vite app (form, logs, preview)
-  - src/pages/HomePage.jsx — UI for running generation
-  - src/components/ui/* — small UI kit and RHF form components
-- requirements.txt — Python dependencies
-- .env — environment variable placeholders
+```plaintext
+.
+├─ app.py
+├─ requirements.txt
+├─ .env                         # your API keys (not committed)
+├─ readmegen/
+│  ├─ collector/
+│  │  ├─ collector.py
+│  │  └─ import_filenames.py
+│  ├─ assessor/
+│  │  └─ assessor.py
+│  └─ generator/
+│     └─ readme_generator.py
+└─ frontend/
+   ├─ package.json
+   ├─ vite.config.js
+   ├─ eslint.config.js
+   ├─ jsconfig.json
+   └─ src/
+      ├─ App.jsx
+      ├─ main.jsx
+      ├─ pages/
+      │  └─ HomePage.jsx
+      ├─ index.css
+      └─ App.css
+```
 
-## Prerequisites
+## Configuration Notes
 
-- Python 3.10+
-- Node.js 18+ (for the frontend)
-- An OpenAI API key
+- Environment variables (root .env):
+  - OPENAI_API_KEY
+  - LANGSMITH_API_KEY (optional)
+  - LANGSMITH_TRACING (optional)
 
-## Installation
+- Model selection:
+  - The code currently references model="gpt-5". If your OpenAI account uses different model names, adjust in:
+    - readmegen/assessor/assessor.py (ChatOpenAI)
+    - readmegen/generator/readme_generator.py (generate_readme_from, write_readme_via_repl)
+  - Example replacements: gpt-4o, gpt-4o-mini, o3-mini (as available to your account).
 
-1) Clone and enter the repo:
-- git clone <your-fork-or-source>
-- cd <repo>
+- CORS:
+  - Enabled in app.py to allow the Vite dev server to call the Flask API.
 
-2) Backend (Python):
-- python -m venv .venv
-- source .venv/bin/activate  # Windows: .venv\Scripts\activate
-- pip install -r requirements.txt
+## Scripts
 
-3) Frontend (React + Vite):
-- cd frontend
-- npm install
-- cd ..
+Backend:
+```bash
+# run API
+python app.py
+```
 
-4) Environment variables:
-Create a .env file in the repo root:
-- OPENAI_API_KEY=<YOUR_VALUE>
-- LANGSMITH_API_KEY=<YOUR_VALUE>       # optional
-- LANGSMITH_TRACING=<YOUR_VALUE>       # optional ("true"/"false")
+Frontend:
+```bash
+# from ./frontend
+npm run dev
+npm run build
+npm run preview
+npm run lint
+```
 
-Note: The collector sanitizes .env-like files when reading the target project:
-- Keys are kept, values are replaced with <YOUR_VALUE> in prompts.
+## Tips & Troubleshooting
 
-## Usage
-
-Option A — With UI (recommended) 🙂
-1) Start the backend API (default http://localhost:5000):
-- source .venv/bin/activate
-- python app.py
-
-2) Start the frontend (default http://localhost:5173):
-- cd frontend
-- npm run dev
-
-3) In the browser:
-- Open http://localhost:5173
-- Paste the absolute path to the target project folder
-- Optionally set a relevance threshold (default: 3)
-- Click “Generate README”
-- The README will be written to: <target-project>/README.generated.md
-- Logs and the generated Markdown are displayed in the UI
-
-Option B — API only (headless)
-- POST http://localhost:5000/api/generate
-- Body:
-  {
-    "path": "/absolute/path/to/target/project",
-    "relevance": 3
-  }
-- Response (200):
-  {
-    "ok": true,
-    "out_path": "/abs/target/README.generated.md",
-    "logs": ["..."],
-    "readme": "...markdown...",
-    "selected_paths": ["..."],
-    "count_collected": 42,
-    "count_selected": 17
-  }
-
-Notes
-- Files with include=True and score >= relevance are used; otherwise, all collected files are used as fallback.
-- The server enforces that path is a directory.
-
-## How it Works
-
-- Collector (readmegen/collector/collector.py)
-  - Skips common dirs (node_modules, .git, build, dist, venv, etc.)
-  - Includes files by extension (.py, .js/.jsx, .json, .yaml/.yml, .md, .txt, .html, etc.) and key names (requirements.txt, package.json, Dockerfile, etc.)
-  - Limits:
-    - Per-file bytes: 512 KB
-    - Total across repo: 5 MB
-    - Lock files truncated to 200 lines; JSON/YAML truncated to 800 lines
-  - Sanitizes .env-like files (values replaced with <YOUR_VALUE>)
-
-- Assessor (readmegen/assessor/assessor.py)
-  - Uses LangChain + OpenAI to score files 0–5 and recommend include True/False
-  - Provides short summary and rationale per file
-  - Scoring rubric favors entry points, config, architecture, run/build/deploy docs
-
-- Generator (readmegen/generator/readme_generator.py)
-  - Builds a structured prompt with formatted “Source: path + Content”
-  - Produces Markdown README
-  - Enforces Mermaid diagram formatting rules in the prompt
-  - Backend writes the README.generated.md to the target folder
-
-## Configuration Tips
-
-- Model: The code defaults to model="gpt-5" in assessor and generator.
-  - If your environment requires a different model, change:
-    - readmegen/assessor/assessor.py → ChatOpenAI(model="gpt-5")
-    - readmegen/generator/readme_generator.py → default model="gpt-5"
-  - Example alternatives: "gpt-4o", "gpt-4o-mini" (adjust per your OpenAI account)
-
-- Relevance threshold: Adjust in the UI or API body ("relevance": 0–5)
-
-- Ignore rules: Tweak readmegen/collector/import_filenames.py to include/exclude more dirs or extensions
-
-## Environment Variables
-
-- OPENAI_API_KEY
-- LANGSMITH_API_KEY (optional)
-- LANGSMITH_TRACING (optional; e.g., "true" to enable)
-
-Never commit real secrets. The collector sanitizes .env-like content prior to prompting.
-
-## Deployment
-
-No Docker files are included in this repo. Run locally via:
-- python app.py for the backend
-- npm run dev for the frontend
-
-If you containerize later, expose:
-- Backend: 5000/tcp
-- Frontend: 5173/tcp (Vite dev) or your chosen static server port after build
-
-## Development
-
-- Python: See requirements.txt
-- Frontend:
-  - React 19 + Vite 7
-  - Tailwind CSS 4 (via @tailwindcss/vite)
-  - React Hook Form + zod for validation
-  - ESLint config included
-
-Frontend build:
-- cd frontend
-- npm run build
-- npm run preview
-
-## Troubleshooting
-
-- 401/403 from OpenAI: Ensure OPENAI_API_KEY is set and valid
-- Model not found: Change model in code to one available to your account
-- CORS issues: The backend enables CORS; ensure frontend targets http://localhost:5000
-- Path errors: Use an absolute directory path accessible by the backend process
-- Empty README: Lower relevance threshold or inspect logs to see what was collected
+- Paths must be accessible to the backend process. If you run the UI from a different machine/container, ensure the backend has filesystem access to the given path.
+- On Windows, escape backslashes in JSON; in the UI you can paste normal paths.
+- If “No documents collected”, check your folder path and ignore rules.
+- Large repos: the collector stops around 5 MB of gathered text to keep prompts manageable.
+- Secrets safety: .env content is sanitized to show only keys.
 
 ## License
 
-No license file detected. If you plan to distribute, add a LICENSE to the repository.
-
-Enjoy generating clean READMEs! 🚀
+No license file was found. If you intend to open-source this project, consider adding a LICENSE file (e.g., MIT, Apache-2.0). 🚀

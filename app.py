@@ -21,7 +21,7 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)  # allow requests from your React dev server
 
-OUTFILE_NAME = "README.generated.md"
+OUTFILE_NAME = "README.md"
 
 
 def build_selected(docs: List[Dict[str, Any]], relevance: int, logs: List[str]):
