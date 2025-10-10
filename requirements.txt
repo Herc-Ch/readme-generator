@@ -1,0 +1,16 @@
+# Core project dependencies
+python-dotenv>=1.0.1
+pydantic>=2.7.0
+
+# LangChain ecosystem (for assessment & generation)
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-openai>=0.2.0
+langchain-experimental>=0.3.0
+
+# OpenAI API client
+openai>=1.42.0
+
+# Optional: local Flask backend (if you later re-enable API routes)
+flask>=3.0.0
+flask-cors>=4.0.0
