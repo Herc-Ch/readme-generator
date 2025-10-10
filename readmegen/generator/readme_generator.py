@@ -46,6 +46,13 @@ Guidelines:
 - License: Include if LICENSE is present.
 - Keep it clear, professional, and concise.
 - Include the usage of emoticons when proper.
+- Code blocks: Always wrap commands, code samples, and diagrams in fenced code blocks 
+    using triple backticks with the correct language identifier (e.g., ```bash```, ```python```, ```mermaid```).
+- Never omit or truncate closing triple backticks.
+- All installation and usage commands must appear in **copyable** fenced blocks (not inline).
+- When showing folder trees or command-line examples, wrap them in ```bash``` or ```plaintext``` blocks.
+- For Mermaid diagrams, always use the syntax ```mermaid\n{diagram}\n```.
+
 
 Mermaid Diagram Rules (Strict):
 1. Always start with `flowchart LR` or `flowchart TD`.
