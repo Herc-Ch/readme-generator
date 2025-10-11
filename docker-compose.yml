@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: .
+    container_name: readmegen-api
+    ports:
+      - "5000:5000"
+    env_file: .env
+    volumes:
+      - ./:/app  # dev-friendly: live reload your python code if applicable
+    command: python app.py
+
+  web:
+    build:
+      context: ./frontend
+    container_name: readmegen-web
+    ports:
+      - "5173:80"   # serve built frontend via nginx on 5173
+    depends_on:
+      - api
