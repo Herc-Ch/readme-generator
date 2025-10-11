@@ -31,7 +31,7 @@ def build_selected(docs: List[Dict[str, Any]], relevance: int, logs: List[str]):
         try:
             ok = (
                 bool(getattr(a, "include", False))
-                and int(getattr(a, "score", 0)) >= relevance
+                and int(getattr(a, "score", 0)) > relevance
             )
             if ok:
                 row = a.model_dump() if hasattr(a, "model_dump") else dict(a)
@@ -51,7 +51,7 @@ def api_generate():
     JSON body:
     {
       "path": "C:/path/to/project",
-      "relevance": 3   # optional (default 3). files with score >= relevance & include=True are used
+      "relevance": 3   # optional (default 3). files with score > relevance & include=True are used
     }
     """
     data = request.get_json(silent=True) or {}
@@ -98,7 +98,7 @@ def api_generate():
             logs.append(f"   • {d['path']}")
     else:
         logs.append(
-            f"⚠️  No files selected with score>={relevance} & include=True; using all files instead."
+            f"⚠️  No files selected with score>{relevance} & include=True; using all files instead."
         )
         selected = [{"path": d["source"], "content": d["content"]} for d in docs]
 
