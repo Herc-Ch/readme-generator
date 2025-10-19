@@ -1,5 +1,7 @@
 # readmegen — AI-powered README Generator
 
+The following is create by https://github.com/Herc-Ch/readme-generator
+
 Generate clear, professional README.md files for any local project using a Flask backend, a React (Vite) frontend, and OpenAI via LangChain. Point the app at a folder on your machine, and it will collect key files, assess their relevance, and synthesize a polished README — then write it back to that folder. 🚀
 
 ## Features
