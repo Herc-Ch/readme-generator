@@ -150,6 +150,7 @@ Mermaid Diagram Rules (Strict):
 6. Never output [Label] without quotes if it contains spaces, punctuation, parentheses, slashes, or plus signs.
 7. If in doubt, always quote the label.
 
+
 Termination Rule:
 - Your final output to the user must be ONLY the absolute path printed by the REPL.
 
