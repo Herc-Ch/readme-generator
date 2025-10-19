@@ -25,6 +25,7 @@ SKIP_DIRS = {
     "target",
     "coverage",
     "logs",
+    "temp_repos",
 }
 
 INCLUDE_EXTS = {
