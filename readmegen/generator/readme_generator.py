@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Any, Dict, Iterable, List
 
 from dotenv import load_dotenv
-from langchain.agents import AgentExecutor, create_openai_tools_agent
+from langchain_classic.agents import AgentExecutor, create_openai_tools_agent
 from langchain_core.prompts import (
     ChatPromptTemplate,
     MessagesPlaceholder,
