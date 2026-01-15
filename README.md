@@ -4,6 +4,8 @@ The following is create by https://github.com/Herc-Ch/readme-generator
 
 Generate clear, professional README.md files for any local project using a Flask backend, a React (Vite) frontend, and OpenAI via LangChain. Point the app at a folder on your machine, and it will collect key files, assess their relevance, and synthesize a polished README — then write it back to that folder. 🚀
 
+![ezgif-3dc68201058fecbd](https://github.com/user-attachments/assets/26218616-9a3c-454c-b792-a88da1709563)
+
 ## Features
 
 - Automatic file collection with safe rules (ignores heavy/lock directories, truncates large configs, sanitizes .env values)
